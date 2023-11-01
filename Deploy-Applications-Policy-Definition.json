@@ -1,0 +1,117 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-08-01/managementGroupDeploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "_generator": {
+      "name": "bicep",
+      "version": "0.22.6.54827",
+      "templateHash": "9602921085150405773"
+    }
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Authorization/policyDefinitions",
+      "apiVersion": "2021-06-01",
+      "name": "policyDef",
+      "properties": {
+        "displayName": "Automatically deploy an application on virtual machines",
+        "description": "This policy will automatically deploy an application in the shared compute gallery.",
+        "mode": "All",
+        "parameters": {
+          "applicationVersion": {
+            "type": "String"
+          },
+          "applicationName": {
+            "type": "String"
+          }
+        },
+        "policyRule": {
+          "if": {
+            "allOf": [
+              {
+                "field": "type",
+                "equals": "Microsoft.Compute/virtualMachines"
+              },
+              {
+                "field": "Microsoft.Compute/virtualMachines/storageProfile.osDisk.osType",
+                "equals": "Windows"
+              }
+            ]
+          },
+          "then": {
+            "effect": "deployIfNotExists",
+            "details": {
+              "type": "Microsoft.Compute/virtualMachines",
+              "name": "[[field('name')]",
+              "existenceCondition": {
+                "allOf": [
+                  {
+                    "count": {
+                      "field": "Microsoft.Compute/virtualMachines/applicationProfile.galleryApplications[*]",
+                      "where": {
+                        "field": "Microsoft.Compute/virtualMachines/applicationProfile.galleryApplications[*].packageReferenceId",
+                        "equals": "[[parameters('applicationVersion')]"
+                      }
+                    },
+                    "greater": 0
+                  }
+                ]
+              },
+              "roleDefinitionIds": [
+                "/providers/Microsoft.Authorization/roleDefinitions/8e3af657-a8ff-443c-a75c-2fe8c4bcb635"
+              ],
+              "deployment": {
+                "properties": {
+                  "mode": "incremental",
+                  "template": {
+                    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json",
+                    "contentVersion": "1.0.0.0",
+                    "parameters": {
+                      "vmName": {
+                        "type": "string"
+                      },
+                      "location": {
+                        "type": "string"
+                      },
+                      "packageReferenceId": {
+                        "type": "string"
+                      },
+                      "applicationName": {
+                        "type": "string"
+                      }
+                    },
+                    "resources": [
+                      {
+                        "apiVersion": "2021-07-01",
+                        "type": "Microsoft.Compute/virtualMachines/VMapplications",
+                        "name": "[[concat(parameters('vmName'), '/', parameters('applicationName'))]",
+                        "location": "[[parameters('location')]",
+                        "properties": {
+                          "packageReferenceId": "[[parameters('packageReferenceId')]"
+                        }
+                      }
+                    ]
+                  },
+                  "parameters": {
+                    "vmName": {
+                      "value": "[[field('name')]"
+                    },
+                    "location": {
+                      "value": "[[field('location')]"
+                    },
+                    "packageReferenceId": {
+                      "value": "[[parameters('applicationVersion')]"
+                    },
+                    "applicationName": {
+                      "value": "[[parameters('applicationName')]"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}
